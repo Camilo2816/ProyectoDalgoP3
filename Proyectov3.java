@@ -1,12 +1,5 @@
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Scanner;
-import java.util.Set;
+
+import java.util.*;
 
 public class Proyectov3 {
     public static void main(String[] args) {
@@ -15,7 +8,6 @@ public class Proyectov3 {
         int numCasos = Integer.parseInt(scanner.nextLine());
 
         for (int caso = 0; caso < numCasos; caso++) {
-
             String[] primeraLinea = scanner.nextLine().split(" ");
             int n = Integer.parseInt(primeraLinea[0]);
             int d = Integer.parseInt(primeraLinea[1]);
@@ -33,87 +25,83 @@ public class Proyectov3 {
                 celulas.add(new Celula(id, x, y, peptidos));
             }
 
-            HashMap<Integer, Set<Integer>> mensajes = new HashMap<Integer, Set<Integer>>();
-            
-
+            // Crear el grafo de mensajes
+            HashMap<Integer, Set<Integer>> mensajes = new HashMap<>();
             for (int i = 0; i < n; i++) {
                 Celula c1 = celulas.get(i);
                 for (int j = i + 1; j < n; j++) {
                     Celula c2 = celulas.get(j);
-                    
+
                     double distancia = c1.distancia(c2);
                     if (distancia <= d) {
                         HashSet<String> peptidosC1 = c1.peptidos;
                         HashSet<String> peptidosC2 = c2.peptidos;
-        
-                        boolean peptidosComunes = Celula.contarPeptidosComunes(peptidosC1, peptidosC2);
-                        if(peptidosComunes)
-                        {
-                        
-                        if (mensajes.containsKey(c2.id))
-                        {
-                            mensajes.get(c2.id).add(c1.id);
-                        }
-                        else
-                        {
-                            mensajes.put(c2.id, new HashSet<Integer>());
-                            mensajes.get(c2.id).add(c1.id);
-                        }
 
-                        if (mensajes.containsKey(c1.id))
-                        {
-                            mensajes.get(c1.id).add(c2.id);
+                        boolean peptidosComunes = Celula.contarPeptidosComunes(peptidosC1, peptidosC2);
+                        if (peptidosComunes) {
+                            mensajes.computeIfAbsent(c1.id, k -> new HashSet<>()).add(c2.id);
+                            mensajes.computeIfAbsent(c2.id, k -> new HashSet<>()).add(c1.id);
                         }
-                        else
-                        {
-                            mensajes.put(c1.id, new HashSet<Integer>());
-                            mensajes.get(c1.id).add(c2.id);
-                        }
-                      }           
-                                            
                     }
-                    
                 }
             }
-            imprimirMensajes(mensajes);
-            System.out.println("Fin de la ejecución");
-               
-        }
 
-    
+            // Aplicar el algoritmo greedy para encontrar los grupos
+            List<Integer> cliques = greedy(mensajes, n);
+
+            System.out.println("Caso #" + (caso + 1) + ":");
+            for (int i = 0; i < celulas.size(); i++) {
+                int id = celulas.get(i).id; // Identificador de la célula
+                int grupo = cliques.get(i); // Grupo al que pertenece
+                System.out.println(id + " " + grupo);
+            }
+        }
     }
 
+    // Método greedy para agrupar las células
+    public static List<Integer> greedy(HashMap<Integer, Set<Integer>> grafo, int n) {
+        List<Integer> vertices = new ArrayList<>(grafo.keySet());
+        Collections.shuffle(vertices); // Permutar aleatoriamente
+        List<Integer> cliques = new ArrayList<>(Collections.nCopies(n, 0));
+        Map<Integer, Integer> tamanios = new HashMap<>();
+        tamanios.put(0, n);
+        int c = 1;
 
-    public static void imprimirMensajes(HashMap<Integer, Set<Integer>> mensajes) {
-        for (Map.Entry<Integer, Set<Integer>> entry : mensajes.entrySet()) {
-            System.out.print(entry.getKey() + ": ");
-            for (Integer id : entry.getValue()) {
-                System.out.print(id + " ");
+        for (int v : vertices) {    
+            boolean etiquetado = false;
+            Map<Integer, Integer> cliquesVecinos = new HashMap<>();
+
+            for (int vecino : grafo.getOrDefault(v, Collections.emptySet())) {
+                cliquesVecinos.put(cliques.get(vecino - 1), cliquesVecinos.getOrDefault(cliques.get(vecino - 1), 0) + 1);
             }
-            System.out.println();
+
+            for (Map.Entry<Integer, Integer> entry : cliquesVecinos.entrySet()) {
+                int clique = entry.getKey();
+                int tam = entry.getValue();
+                if (tam == tamanios.getOrDefault(clique, 0)) {
+                    cliques.set(v - 1, clique);
+                    tamanios.put(clique, tamanios.getOrDefault(clique, 0) + 1);
+                    etiquetado = true;
+                    break;
+                }
+            }
+
+            if (!etiquetado) {
+                cliques.set(v - 1, c);
+                tamanios.put(c, tamanios.getOrDefault(c, 0) + 1);
+                c++;
+            }
         }
+
+        return cliques;
     }
 }
-    
 
-
-
-   
-    
-
-    
-
-    
-    
-    
-
-   
-
+// Clase Celula
 class Celula {
     int id;
     int x;
     int y;
-    int tipo;
     HashSet<String> peptidos;
 
     public Celula(int id, int x, int y, HashSet<String> peptidos) {
@@ -134,7 +122,7 @@ class Celula {
             return contarInterseccion(peptidosC1, peptidosC2);
         }
     }
-    
+
     private static boolean contarInterseccion(HashSet<String> pequeno, HashSet<String> grande) {
         for (String peptido : pequeno) {
             if (grande.contains(peptido)) {
@@ -143,6 +131,4 @@ class Celula {
         }
         return false;
     }
-    
 }
-
