@@ -49,12 +49,20 @@ public class Proyectov3 {
             // Aplicar el algoritmo greedy para encontrar los grupos
             List<Integer> cliques = greedy(mensajes, n);
 
+    //      System.out.println("Caso #" + (caso + 1) + ":");
+      //    for (int i = 0; i < celulas.size(); i++) {
+        //       int id = celulas.get(i).id; // Identificador de la célula
+          //   int grupo = cliques.get(i); // Grupo al que pertenece
+            //   System.out.println(id + " " + grupo);
+            //}
+
+            // Utilizar un Set para almacenar los cliques únicos
+            Set<Integer> cliqueSet = new HashSet<>(cliques);
+
             System.out.println("Caso #" + (caso + 1) + ":");
-            for (int i = 0; i < celulas.size(); i++) {
-                int id = celulas.get(i).id; // Identificador de la célula
-                int grupo = cliques.get(i); // Grupo al que pertenece
-                System.out.println(id + " " + grupo);
-            }
+            // Imprimir la cantidad de cliques
+          System.out.println(sonCliquesValidos(cliques, mensajes));
+            System.out.println(cliqueSet.size());
         }
     }
 
@@ -62,19 +70,20 @@ public class Proyectov3 {
     public static List<Integer> greedy(HashMap<Integer, Set<Integer>> grafo, int n) {
         List<Integer> vertices = new ArrayList<>(grafo.keySet());
         Collections.shuffle(vertices); // Permutar aleatoriamente
-        List<Integer> cliques = new ArrayList<>(Collections.nCopies(n, 0));
+        List<Integer> cliques = new ArrayList<>(Collections.nCopies(n, 0)); // Inicializar todos en clique 0
         Map<Integer, Integer> tamanios = new HashMap<>();
-        tamanios.put(0, n);
-        int c = 1;
-
-        for (int v : vertices) {    
+        int c = 1; // Contador de cliques
+    
+        for (int v : vertices) {
             boolean etiquetado = false;
+    
+            // Mapear los cliques vecinos y sus tamaños
             Map<Integer, Integer> cliquesVecinos = new HashMap<>();
-
             for (int vecino : grafo.getOrDefault(v, Collections.emptySet())) {
                 cliquesVecinos.put(cliques.get(vecino - 1), cliquesVecinos.getOrDefault(cliques.get(vecino - 1), 0) + 1);
             }
-
+    
+            // Intentar asignar el nodo a un clique existente
             for (Map.Entry<Integer, Integer> entry : cliquesVecinos.entrySet()) {
                 int clique = entry.getKey();
                 int tam = entry.getValue();
@@ -85,17 +94,69 @@ public class Proyectov3 {
                     break;
                 }
             }
-
+    
+            // Si no se pudo etiquetar, crear un nuevo clique
             if (!etiquetado) {
                 cliques.set(v - 1, c);
-                tamanios.put(c, tamanios.getOrDefault(c, 0) + 1);
+                tamanios.put(c, 1);
                 c++;
             }
         }
-
+    
+        // Asegurarse de que los nodos aislados estén en su propio clique
+        for (int i = 0; i < n; i++) {
+            if (grafo.getOrDefault(i + 1, Collections.emptySet()).isEmpty() && cliques.get(i) == 0) {
+                cliques.set(i, c); // Crear un nuevo clique exclusivo
+                c++;
+            }
+        }
+    
         return cliques;
     }
+    
+
+    public static boolean sonCliquesValidos(List<Integer> cliques, HashMap<Integer, Set<Integer>> grafo) {
+        // Crear un mapa que agrupe las células por clique
+        HashMap<Integer, Set<Integer>> cliquesMap = new HashMap<>();
+        for (int i = 0; i < cliques.size(); i++) {
+            int cliqueId = cliques.get(i);
+            cliquesMap.computeIfAbsent(cliqueId, k -> new HashSet<>()).add(i + 1); // Las células están numeradas desde 1
+            ;
+        }
+
+        for (Map.Entry<Integer, Set<Integer>> entry : cliquesMap.entrySet()) {
+            System.out.println("Clique " + entry.getKey() + ": " + entry.getValue());
+        }
+        
+
+        // Verificar cada clique en el mapa
+        for (Set<Integer> clique : cliquesMap.values()) {
+            if (!esCliqueValido(clique, grafo)) {
+                return false; // Si algún clique no es válido, retornamos false
+            }
+        }
+
+        return true; // Todos los cliques son válidos
+    }
+
+    public static boolean esCliqueValido(Set<Integer> clique, HashMap<Integer, Set<Integer>> grafo) {
+        // Iterar por cada par de nodos en el clique
+        for (Integer nodo1 : clique) {
+            for (Integer nodo2 : clique) {
+                // No necesitamos verificar un nodo consigo mismo
+                if (!nodo1.equals(nodo2)) {
+                    // Comprobar si nodo1 está conectado con nodo2 en el grafo
+                    if (!grafo.getOrDefault(nodo1, Collections.emptySet()).contains(nodo2)) {
+                        return false; // Si falta alguna conexión, no es un clique válido
+                    }
+                }
+            }
+        }
+        return true; // Si todos los pares están conectados, es un clique válido
+    }
 }
+
+    
 
 // Clase Celula
 class Celula {
